@@ -1,0 +1,305 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -16
+      ],
+      "id": "0b5cec7a-8581-4bdc-bfbd-705222f9d371",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4e3665d6-2c0b-46fc-b41d-1f665274b870",
+              "name": "topic",
+              "value": "large language models in healthcare",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        48,
+        -16
+      ],
+      "id": "f621e353-2e51-4cc3-a37b-a3a787aa779f",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "https://export.arxiv.org/api/query",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "search_query",
+              "value": "=all:{{ $json.topic }}"
+            },
+            {
+              "name": "start",
+              "value": "0"
+            },
+            {
+              "name": "max_result",
+              "value": "5"
+            },
+            {
+              "name": "sortBy",
+              "value": "submittedDate"
+            },
+            {
+              "name": "sortOrder",
+              "value": "descending"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        256,
+        -16
+      ],
+      "id": "61337509-af98-4ed5-a4a8-81f4f1272ee1",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        464,
+        -16
+      ],
+      "id": "4af698d6-ff1d-45e2-9c43-00cdf2dfa91d",
+      "name": "XML"
+    },
+    {
+      "parameters": {
+        "jsCode": "// This code takes the 'feed.entry' array from the first input item\n// and outputs each element of that array as a separate item.\n\nconst newItems = []; // Initialize an array to hold the new items\n\n// Access the data of the first input item using $input.all()[0].json\n// then the 'feed' property, then the 'entry' array.\n\nif ($input.all()[0] && $input.all()[0].json && $input.all()[0].json.feed && $input.all()[0].json.feed.entry) {\n    const paperEntries = $input.all()[0].json.feed.entry;\n\n    // Iterate over each paper object in the 'entry' array\n    for (const paper of paperEntries) {\n        newItems.push({ json: paper }); // Add each paper object as a new item\n    }\n}\n\nreturn newItems; // Return the new array of items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        -16
+      ],
+      "id": "072fb201-dc2c-47e5-812e-e95d581532fd",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "02656b6e-e513-44d5-866c-6cbf377c8d58",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "1d3f336a-823e-440b-83ad-28b8c3cc1014",
+              "name": "url",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "ffddf52a-254a-4f3c-b9df-6db3817c4e60",
+              "name": "abstract",
+              "value": "={{ $json.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "e44bebbf-6c2c-491f-89df-4c307bf88193",
+              "name": "authors\t",
+              "value": "={{ $json.author }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        -16
+      ],
+      "id": "55e907ab-98ff-4c0a-9709-1bb1a72b6726",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-1.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-1.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Please summarize the following research paper, focusing on its main findings and contributions:\n\nTitle: {{ $json.title }}\nAbstract: {{ $json.abstract }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        -16
+      ],
+      "id": "4f6a9524-4f50-4749-ad5b-3a952e2deaad",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Ao3Q1M0im83KJPZR",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "={{ $json.content.parts[0].text }}",
+        "name": "={{ $json.title + '.txt' }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1440,
+        -16
+      ],
+      "id": "c3270faf-90ec-417f-8e12-689c6736e178",
+      "name": "Create file from text",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "NHBl8BHhH3XgwoUT",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "XML": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Create file from text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d7ea94ed-d4d0-4fac-83e9-d29743364692",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "51f7be6e189d42111f338f6fcac924b59865dda1f38ae7edcb484250fc89714b"
+  },
+  "id": "Hbd0hU40OOHyKmvH",
+  "tags": []
+}
